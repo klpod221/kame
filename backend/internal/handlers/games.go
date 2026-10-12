@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -65,6 +68,69 @@ func (h *GamesHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, game)
+}
+
+func (h *GamesHandler) Download(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "Missing game ID", http.StatusBadRequest)
+		return
+	}
+
+	game, err := h.db.GetGameByID(id)
+	if err != nil || game == nil {
+		http.Error(w, "Game not found", http.StatusNotFound)
+		return
+	}
+
+	// Extract access token from query param or header
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		authHeader := r.Header.Get("Authorization")
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			token = strings.TrimPrefix(authHeader, "Bearer ")
+		}
+	}
+
+	if token == "" {
+		http.Error(w, "Google access_token is required to stream from Google Drive", http.StatusUnauthorized)
+		return
+	}
+
+	gdriveURL := fmt.Sprintf("https://www.googleapis.com/drive/v3/files/%s?alt=media&acknowledgeAbuse=true", url.PathEscape(game.DriveFileID))
+
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, gdriveURL, nil)
+	if err != nil {
+		http.Error(w, "Failed to create upstream request", http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	// Stream directly with standard HTTP client
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, "Failed to connect to Google Drive: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.StatusCode)
+		w.Write(body)
+		return
+	}
+
+	filename := game.Title + ".zip"
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, strings.ReplaceAll(filename, `"`, `_`)))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	if resp.ContentLength > 0 {
+		w.Header().Set("Content-Length", strconv.FormatInt(resp.ContentLength, 10))
+	}
+
+	_, _ = io.Copy(w, resp.Body)
 }
 
 func (h *GamesHandler) ListGenres(w http.ResponseWriter, r *http.Request) {
@@ -133,6 +199,62 @@ func (h *GamesHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusCreated, game)
+}
+
+func (h *GamesHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		respondError(w, http.StatusBadRequest, "Missing game ID")
+		return
+	}
+
+	existing, err := h.db.GetGameByID(id)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to fetch game")
+		return
+	}
+	if existing == nil {
+		respondError(w, http.StatusNotFound, "Game not found")
+		return
+	}
+
+	var req createGameRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	req.Title = strings.TrimSpace(req.Title)
+	req.DriveFileID = strings.TrimSpace(req.DriveFileID)
+
+	if req.Title == "" {
+		respondError(w, http.StatusBadRequest, "Title is required")
+		return
+	}
+	if req.DriveFileID == "" {
+		respondError(w, http.StatusBadRequest, "Google Drive File ID is required")
+		return
+	}
+
+	if strings.Contains(req.DriveFileID, "drive.google.com") {
+		req.DriveFileID = extractDriveID(req.DriveFileID)
+	}
+
+	existing.Title = req.Title
+	existing.Description = req.Description
+	existing.Genres = req.Genres
+	existing.CoverURL = req.CoverURL
+	existing.BackgroundURL = req.BackgroundURL
+	existing.DriveFileID = req.DriveFileID
+	existing.ReleaseYear = req.ReleaseYear
+	existing.Rating = req.Rating
+
+	if err := h.db.UpdateGame(existing); err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to update game")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, existing)
 }
 
 func (h *GamesHandler) Delete(w http.ResponseWriter, r *http.Request) {

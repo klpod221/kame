@@ -29,7 +29,7 @@ var embeddedFS embed.FS
 func main() {
 	cfg := config.Load()
 
-	log.Printf("[SERVER] Starting Kame Game Catalog on port %s...", cfg.Port)
+	log.Printf("[SERVER] Starting Kame Game Vault on port %s...", cfg.Port)
 	log.Printf("[CONFIG] SQLite DB Path: %s", cfg.DBPath)
 	if len(cfg.WhitelistEmails) > 0 {
 		log.Printf("[CONFIG] Whitelist enabled (%d emails)", len(cfg.WhitelistEmails))
@@ -51,6 +51,7 @@ func main() {
 	gamesHandler := handlers.NewGamesHandler(db)
 	scraperHandler := handlers.NewScraperHandler(scraperProvider)
 	configHandler := handlers.NewConfigHandler(cfg)
+	adminHandler := handlers.NewAdminHandler(db, cfg)
 
 	r := chi.NewRouter()
 
@@ -60,6 +61,12 @@ func main() {
 	r.Use(chiMiddleware.Logger)
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(chiMiddleware.Timeout(60 * time.Second))
+	r.Use(middleware.SecurityHeaders)
+
+	// Rate Limiters per category
+	generalLimiter := middleware.NewRateLimiter(120, 150) // 120 req/min
+	authLimiter := middleware.NewRateLimiter(20, 30)      // 20 req/min (anti-bruteforce)
+	scrapeLimiter := middleware.NewRateLimiter(15, 20)    // 15 req/min (avoid upstream scraper bans)
 
 	// CORS configuration
 	r.Use(cors.Handler(cors.Options{
@@ -71,14 +78,24 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	// Auth extraction middleware
+	// Auth extraction middleware (all middlewares must be declared before routes)
 	r.Use(middleware.AuthMiddleware(cfg))
+
+	// Health check endpoint for Docker probes
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok","app":"Kame","time":"` + time.Now().UTC().Format(time.RFC3339) + `"}`))
+	})
 
 	// API Routes
 	r.Route("/api", func(api chi.Router) {
+		api.Use(generalLimiter.Handler)
+
 		api.Get("/config", configHandler.Get)
 
 		api.Route("/auth", func(auth chi.Router) {
+			auth.Use(authLimiter.Handler)
 			auth.Post("/google", authHandler.GoogleLogin)
 			auth.Get("/me", authHandler.Me)
 		})
@@ -86,6 +103,7 @@ func main() {
 		api.Route("/games", func(games chi.Router) {
 			games.Get("/", gamesHandler.List)
 			games.Get("/{id}", gamesHandler.Get)
+			games.Get("/{id}/download", gamesHandler.Download)
 		})
 
 		api.Get("/genres", gamesHandler.ListGenres)
@@ -93,9 +111,14 @@ func main() {
 		// Protected Admin Routes
 		api.Route("/admin", func(admin chi.Router) {
 			admin.Use(middleware.RequireAdmin)
-			admin.Post("/scrape", scraperHandler.Scrape)
+			admin.With(scrapeLimiter.Handler).Post("/scrape", scraperHandler.Scrape)
 			admin.Post("/games", gamesHandler.Create)
+			admin.Put("/games/{id}", gamesHandler.Update)
 			admin.Delete("/games/{id}", gamesHandler.Delete)
+			admin.Get("/stats", adminHandler.GetStats)
+			admin.Get("/users", adminHandler.ListUsers)
+			admin.Put("/users/{email}/role", adminHandler.UpdateUserRole)
+			admin.Delete("/users/{email}", adminHandler.DeleteUser)
 		})
 	})
 

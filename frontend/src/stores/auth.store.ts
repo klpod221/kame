@@ -1,42 +1,37 @@
+import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User, AppConfig } from '../types'
+import { authService } from '../services/auth.service'
+import { useToastStore } from './toast.store'
 
-const token = ref<string | null>(localStorage.getItem('kame_jwt_token'))
-const googleAccessToken = ref<string | null>(localStorage.getItem('kame_google_access_token'))
-const currentUser = ref<User | null>(
-  localStorage.getItem('kame_user') ? JSON.parse(localStorage.getItem('kame_user')!) : null
-)
-const appConfig = ref<AppConfig | null>(null)
-const isLoggingIn = ref(false)
-const loginError = ref<string | null>(null)
+export const useAuthStore = defineStore('auth', () => {
+  const token = ref<string | null>(localStorage.getItem('kame_jwt_token'))
+  const googleAccessToken = ref<string | null>(localStorage.getItem('kame_google_access_token'))
+  const currentUser = ref<User | null>(
+    localStorage.getItem('kame_user') ? JSON.parse(localStorage.getItem('kame_user')!) : null
+  )
+  const appConfig = ref<AppConfig | null>(null)
+  const isLoggingIn = ref(false)
+  const loginError = ref<string | null>(null)
 
-let tokenClient: any = null
+  let tokenClient: any = null
 
-export function useAuth() {
   const isAuthenticated = computed(() => !!token.value && !!currentUser.value)
   const isAdmin = computed(() => currentUser.value?.role === 'admin')
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch('/api/config')
-      if (res.ok) {
-        const data = await res.json()
-        appConfig.value = {
-          google_client_id: data.google_client_id,
-          is_authenticated: isAuthenticated.value,
-          user: currentUser.value,
-        }
-        initGoogleClient()
-      }
-    } catch (err) {
-      console.error('Failed to fetch config:', err)
+      const config = await authService.getConfig()
+      appConfig.value = config
+      initGoogleClient()
+    } catch (err: any) {
+      console.error('Failed to load server config:', err)
     }
   }
 
   const initGoogleClient = () => {
     if (!appConfig.value?.google_client_id) return
 
-    // Load GIS script if not present
     if (!document.getElementById('google-gis-script')) {
       const script = document.createElement('script')
       script.id = 'google-gis-script'
@@ -60,8 +55,7 @@ export function useAuth() {
         scope: 'openid profile email https://www.googleapis.com/auth/drive.readonly',
         callback: async (resp: any) => {
           if (resp.error) {
-            loginError.value = resp.error_description || resp.error
-            isLoggingIn.value = false
+            loginError.value = `Google Authentication error: ${resp.error}`
             return
           }
           if (resp.access_token) {
@@ -77,19 +71,10 @@ export function useAuth() {
   const handleGoogleAccessToken = async (gToken: string) => {
     isLoggingIn.value = true
     loginError.value = null
+    const toast = useToastStore()
+
     try {
-      const res = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: gToken }),
-      })
-
-      const data = await res.json()
-      if (!res.ok) {
-        loginError.value = data.error || 'Login failed'
-        return
-      }
-
+      const data = await authService.loginWithGoogleToken(gToken)
       token.value = data.token
       googleAccessToken.value = gToken
       currentUser.value = data.user
@@ -97,8 +82,12 @@ export function useAuth() {
       localStorage.setItem('kame_jwt_token', data.token)
       localStorage.setItem('kame_google_access_token', gToken)
       localStorage.setItem('kame_user', JSON.stringify(data.user))
+
+      toast.success(`Welcome back, ${data.user.name || data.user.email}!`, 'Signed In')
+      window.location.href = '/'
     } catch (err: any) {
-      loginError.value = err.message || 'Network error during login'
+      loginError.value = err.message || 'Login failed'
+      toast.error(loginError.value!, 'Authentication Failed')
     } finally {
       isLoggingIn.value = false
     }
@@ -127,6 +116,7 @@ export function useAuth() {
     localStorage.removeItem('kame_jwt_token')
     localStorage.removeItem('kame_google_access_token')
     localStorage.removeItem('kame_user')
+    window.location.href = '/login'
   }
 
   return {
@@ -134,12 +124,12 @@ export function useAuth() {
     googleAccessToken,
     currentUser,
     appConfig,
-    isAuthenticated,
-    isAdmin,
     isLoggingIn,
     loginError,
+    isAuthenticated,
+    isAdmin,
     fetchConfig,
     loginWithGoogle,
     logout,
   }
-}
+})

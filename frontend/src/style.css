@@ -1,27 +1,109 @@
 @import "tailwindcss";
 
-@layer base {
-  body {
-    @apply bg-slate-950 text-slate-100 antialiased min-h-screen font-sans;
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(30, 27, 75, 0.4) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.6) 0px, transparent 50%);
-    background-attachment: fixed;
+:root {
+  --cinema-bg: #070a0f;
+  --cinema-surface: #0c121c;
+  --cinema-surface-elevated: #111a28;
+  --cinema-card: #0f1724;
+  --cinema-border: rgba(255, 255, 255, 0.08);
+  --cinema-accent: #6366f1;
+}
+
+body {
+  background-color: var(--cinema-bg);
+  color: #f1f5f9;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+    radial-gradient(circle at 100% 100%, rgba(30, 27, 75, 0.15) 0%, transparent 40%);
+  background-attachment: fixed;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Custom sleek cinema scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+/* Cinema Utility Classes */
+.cinema-glass {
+  background: rgba(12, 18, 28, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--cinema-border);
+}
+
+.cinema-glass-card {
+  background: rgba(15, 23, 36, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cinema-glow-hover:hover {
+  box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.35);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+/* Skeleton Loading Shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite linear;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Custom modern scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
 }
-::-webkit-scrollbar-track {
-  background: #090d16;
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+
+.animate-shake {
+  animation: shake 0.35s ease-in-out forwards;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

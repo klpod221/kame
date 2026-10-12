@@ -15,6 +15,7 @@ import (
 
 type DB struct {
 	conn *sql.DB
+	path string
 }
 
 func New(dbPath string) (*DB, error) {
@@ -43,7 +44,7 @@ func New(dbPath string) (*DB, error) {
 		}
 	}
 
-	db := &DB{conn: conn}
+	db := &DB{conn: conn, path: dbPath}
 	if err := db.migrate(); err != nil {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
@@ -139,7 +140,7 @@ func (db *DB) ListGames(search, genre string, page, limit int) ([]Game, int, err
 	}
 	defer rows.Close()
 
-	var games []Game
+	games := make([]Game, 0)
 	for rows.Next() {
 		var g Game
 		var genresRaw string
@@ -171,9 +172,8 @@ func (db *DB) ListGames(search, genre string, page, limit int) ([]Game, int, err
 		g.UpdatedAt, _ = time.Parse(time.RFC3339, updatedAtStr)
 		games = append(games, g)
 	}
-
-	if games == nil {
-		games = []Game{}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
 	}
 
 	return games, total, nil
@@ -275,8 +275,11 @@ func (db *DB) ListDistinctGenres() ([]string, error) {
 			}
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
-	var results []string
+	results := make([]string, 0)
 	for g := range genreMap {
 		results = append(results, g)
 	}
@@ -310,3 +313,84 @@ func (db *DB) GetUser(email string) (*User, error) {
 	u.LastLoginAt, _ = time.Parse(time.RFC3339, lastLoginStr)
 	return &u, nil
 }
+
+func (db *DB) UpdateGame(g *Game) error {
+	genresJSON, _ := json.Marshal(g.Genres)
+	g.UpdatedAt = time.Now()
+
+	_, err := db.conn.Exec(`
+		UPDATE games 
+		SET title = ?, description = ?, genres = ?, cover_url = ?, background_url = ?, 
+		    drive_file_id = ?, release_year = ?, rating = ?, updated_at = ?
+		WHERE id = ?
+	`,
+		g.Title,
+		g.Description,
+		string(genresJSON),
+		g.CoverURL,
+		g.BackgroundURL,
+		g.DriveFileID,
+		g.ReleaseYear,
+		g.Rating,
+		g.UpdatedAt.Format(time.RFC3339),
+		g.ID,
+	)
+	return err
+}
+
+func (db *DB) ListUsers() ([]User, error) {
+	rows, err := db.conn.Query("SELECT email, name, picture, role, last_login_at FROM users ORDER BY last_login_at DESC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := make([]User, 0)
+	for rows.Next() {
+		var u User
+		var lastLoginStr string
+		if err := rows.Scan(&u.Email, &u.Name, &u.Picture, &u.Role, &lastLoginStr); err != nil {
+			return nil, err
+		}
+		u.LastLoginAt, _ = time.Parse(time.RFC3339, lastLoginStr)
+		users = append(users, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func (db *DB) UpdateUserRole(email, role string) error {
+	_, err := db.conn.Exec("UPDATE users SET role = ? WHERE email = ?", role, email)
+	return err
+}
+
+func (db *DB) DeleteUser(email string) error {
+	_, err := db.conn.Exec("DELETE FROM users WHERE email = ?", email)
+	return err
+}
+
+func (db *DB) GetStats() (map[string]any, error) {
+	var totalGames int
+	var totalUsers int
+
+	_ = db.conn.QueryRow("SELECT COUNT(*) FROM games").Scan(&totalGames)
+	_ = db.conn.QueryRow("SELECT COUNT(*) FROM users").Scan(&totalUsers)
+
+	genres, _ := db.ListDistinctGenres()
+
+	var dbSizeBytes int64
+	if fi, err := os.Stat(db.path); err == nil {
+		dbSizeBytes = fi.Size()
+	}
+
+	return map[string]any{
+		"total_games":   totalGames,
+		"total_users":   totalUsers,
+		"total_genres":  len(genres),
+		"db_size_bytes": dbSizeBytes,
+		"db_path":       db.path,
+	}, nil
+}
+

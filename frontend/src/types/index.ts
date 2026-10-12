@@ -17,7 +17,8 @@ export interface User {
   email: string
   name: string
   picture: string
-  role: 'admin' | 'user'
+  role: 'admin' | 'user' | 'member'
+  last_login_at?: string
 }
 
 export interface AppConfig {
