@@ -1,111 +1,111 @@
 # 🎮 KAME - Game Catalog & Direct CDN Downloader
 
-Hệ thống Web Game Catalog All-in-One tối giản dành cho nhóm nội bộ (2-3 người dùng) với giao diện dark-mode phong cách Steam/Jellyfin, tích hợp cơ chế tải file Google Drive dung lượng lớn (>10GB) không bị chặn quét virus và được đóng gói toàn bộ vào **1 Docker image duy nhất (~25MB)**.
+A lightweight, self-contained All-in-One Game Catalog Web Application designed for small private groups (2-3 users). Features a sleek Steam/Jellyfin-inspired dark aesthetic, high-speed Google Drive download streaming (>10GB) that bypasses virus scan warnings, packaged entirely into a **single minimal Docker image (~25MB)**.
 
 ---
 
-## 🌟 Tính Năng Nổi Bật
+## 🌟 Key Features
 
-* **Kiến Trúc All-in-One Siêu Nhẹ:** 
-  * Backend viết bằng **Go**, phục vụ REST API và nhúng toàn bộ Frontend SPA vào 1 binary tĩnh duy nhất qua `//go:embed`.
-  * Cơ sở dữ liệu **SQLite thuần Go** (`modernc.org/sqlite`, CGO-free, bật sẵn WAL mode, busy timeout). Không cần cài đặt container PostgreSQL rời.
-* **Giao Diện Hiện Đại & Mượt Mà:**
-  * **Vue 3** + **Vite** + **Tailwind CSS v4** (`@tailwindcss/vite`) + **Lucide Icons** (`lucide-vue-next`).
-  * Poster tỷ lệ 3:4, Hero banner chất lượng cao, bộ lọc Genre động và tìm kiếm tức thì.
-* **Tải File Tốc Độ Tối Đa (Bypass Virus Scan Google Drive):**
-  * Tích hợp **Google Identity Services (GIS)** với scope `https://www.googleapis.com/auth/drive.readonly`.
-  * Sinh URL tải trực tiếp kèm `acknowledgeAbuse=true&access_token={user_access_token}` trên Client:
+* **Ultra-Lightweight All-in-One Architecture:**
+  * Backend written in **Go**, serving REST APIs and embedding the entire Frontend SPA into a single static binary via `//go:embed`.
+  * Pure Go **SQLite engine** (`modernc.org/sqlite`, CGO-free, preconfigured with WAL mode and busy timeout). Zero external database container required.
+* **Modern & Responsive UI:**
+  * **Vue 3** + **TypeScript** + **Vite** + **Tailwind CSS v4** (`@tailwindcss/vite`) + **Lucide Icons** (`lucide-vue-next`).
+  * 3:4 aspect-ratio game posters, high-resolution hero banners, dynamic genre filtering, and debounced instant search.
+* **High-Speed Direct Download (Bypasses Google Drive Virus Scan):**
+  * Integrated with **Google Identity Services (GIS)** using scope `https://www.googleapis.com/auth/drive.readonly`.
+  * Client generates direct stream URLs with `acknowledgeAbuse=true&access_token={user_access_token}`:
     ```text
     https://www.googleapis.com/drive/v3/files/{drive_file_id}?alt=media&acknowledgeAbuse=true&access_token={user_access_token}
     ```
-  * File được stream thẳng từ máy chủ CDN của Google về máy người dùng. Máy chủ ứng dụng **không tốn 1 byte băng thông nào**.
-* **Tự Động Cào Metadata (Scraper Pipeline):**
-  * Tự động làm sạch tên file/game (lọc các tag như `[FitGirl]`, `v1.0`, `CRACK`, `CODEX`, `.iso`,...).
-  * Tìm kiếm và lấy poster, background art, thể loại, năm phát hành, điểm đánh giá qua **RAWG API** (ưu tiên) và tự động fallback sang **IGDB / Twitch API**.
-* **Bảo Mật Nội Bộ:**
-  * Xác thực qua Google OAuth2 kết hợp kiểm tra **Whitelist Email** ở phía Backend. Chỉ các email được khai báo trước mới có quyền truy cập. Phân quyền Admin riêng biệt.
+  * Files stream directly from Google's CDN to the user's browser at full bandwidth. The application server consumes **0 bytes of download bandwidth**.
+* **Automated Metadata Scraping Pipeline:**
+  * Automatic filename sanitization removes scene/release tags (`[FitGirl]`, `v1.0`, `CRACK`, `CODEX`, `.iso`, etc.).
+  * Fetches cover art, backgrounds, genres, release year, and ratings via **RAWG API** (primary) with automatic fallback to **IGDB / Twitch API**.
+* **Private Access Control:**
+  * Google OAuth2 authentication paired with backend **Email Whitelist** verification. Only whitelisted Google accounts can sign in. Includes a dedicated Admin role.
 
 ---
 
-## 📂 Cấu Trúc Mã Nguồn
+## 📂 Project Structure
 
 ```text
 kame/
 ├── backend/
 │   ├── cmd/server/
-│   │   ├── main.go               # Entry point, Chi router, SPA file server fallback
-│   │   └── dist/                 # Thư mục nhúng static assets của Frontend
+│   │   ├── main.go               # Entry point, Chi router, embedded SPA file server fallback
+│   │   └── dist/                 # Embedded Frontend static build output
 │   ├── internal/
-│   │   ├── config/config.go      # Đọc biến môi trường & helper whitelist/admin
-│   │   ├── database/             # SQLite init (WAL, pragma, migrations, models)
+│   │   ├── config/config.go      # Environment variable loader & whitelist/admin helpers
+│   │   ├── database/             # SQLite init (WAL, pragmas, migrations, models)
 │   │   ├── handlers/             # Auth, Games, Scraper, Config REST handlers
-│   │   ├── middleware/           # JWT verification, Whitelist & Admin guard
-│   │   └── scraper/              # RAWG, IGDB (Twitch OAuth) & Composite Scraper
+│   │   ├── middleware/           # JWT verification, Whitelist & Admin guards
+│   │   └── scraper/              # RAWG, IGDB (Twitch OAuth), & Composite Scraper
 │   └── go.mod
 ├── frontend/
 │   ├── src/
 │   │   ├── components/           # Navbar, GameCard, GameDetailModal, AddGameModal
 │   │   ├── composables/          # useAuth (GIS SDK), useGames (Download URL generator)
-│   │   ├── types/                # TypeScript models
+│   │   ├── types/                # TypeScript interfaces
 │   │   ├── App.vue
 │   │   └── style.css             # Tailwind v4 import & custom styles
 │   ├── vite.config.ts            # Tailwind v4 plugin + API proxy
 │   └── package.json
-├── Dockerfile                    # Multi-stage build (Node -> Go Static -> Alpine Runner)
-├── docker-compose.yml            # Khởi chạy dịch vụ duy nhất + Volume /data
-├── .env.example                  # Template biến môi trường
-└── Makefile                      # Công cụ build & dev nhanh
+├── Dockerfile                    # Multi-stage build (Node -> Go Static Binary -> Alpine Runner)
+├── docker-compose.yml            # Single-service Docker Compose configuration + /data volume
+├── .env.example                  # Environment variables template
+└── Makefile                      # Automation tasks for dev & build
 ```
 
 ---
 
-## ⚙️ Cấu Hình Môi Trường (.env)
+## ⚙️ Configuration (.env)
 
-Sao chép `.env.example` thành `.env`:
+Copy `.env.example` to `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-| Biến Môi Trường | Mô Tả | Mặc Định / Ví Dụ |
+| Environment Variable | Description | Default / Example |
 | :--- | :--- | :--- |
-| `PORT` | Cổng HTTP Web App lắng nghe | `8080` |
-| `DB_PATH` | Đường dẫn lưu SQLite database | `/data/catalog.db` (Docker) hoặc `data/catalog.db` (Local) |
-| `GOOGLE_CLIENT_ID` | OAuth 2.0 Client ID tạo từ Google Cloud Console | `xxxx.apps.googleusercontent.com` |
-| `WHITELIST_EMAILS` | Danh sách Gmail được phép truy cập | `alice@gmail.com,bob@gmail.com` |
-| `ADMIN_EMAILS` | Danh sách Gmail có quyền thêm/xóa game | `alice@gmail.com` |
-| `JWT_SECRET` | Khóa bí mật ký JWT Session | Tự động tạo random nếu để trống |
-| `RAWG_API_KEY` | API Key miễn phí từ [rawg.io/apidocs](https://rawg.io/apidocs) | `abcdef...` |
-| `TWITCH_CLIENT_ID` | Client ID cho IGDB fallback (tùy chọn) | `...` |
-| `TWITCH_CLIENT_SECRET`| Client Secret cho IGDB (tùy chọn) | `...` |
+| `PORT` | HTTP port the application listens on | `8080` |
+| `DB_PATH` | Path to the SQLite database file | `/data/catalog.db` (Docker) or `data/catalog.db` (Local) |
+| `GOOGLE_CLIENT_ID` | OAuth 2.0 Client ID from Google Cloud Console | `xxxx.apps.googleusercontent.com` |
+| `WHITELIST_EMAILS` | Comma-separated list of whitelisted Gmail addresses | `alice@gmail.com,bob@gmail.com` |
+| `ADMIN_EMAILS` | Comma-separated list of Gmail addresses with Admin role | `alice@gmail.com` |
+| `JWT_SECRET` | Secret key for signing JWT sessions | Auto-generated random 32-byte key if empty |
+| `RAWG_API_KEY` | Free API key from [rawg.io/apidocs](https://rawg.io/apidocs) | `abcdef...` |
+| `TWITCH_CLIENT_ID` | Client ID for IGDB fallback (optional) | `...` |
+| `TWITCH_CLIENT_SECRET`| Client Secret for IGDB fallback (optional) | `...` |
 
-> **Lưu ý cấu hình Google Cloud Console:**
-> 1. Truy cập [Google Cloud Console Credentials](https://console.cloud.google.com/apis/credentials).
-> 2. Tạo một **OAuth 2.0 Client ID** loại **Web application**.
-> 3. Trong mục **Authorized JavaScript origins**, thêm địa chỉ domain/IP của bạn (ví dụ: `http://localhost:8080` hoặc `https://kame.yourdomain.com`).
-> 4. Trong Google Drive, cấp quyền **Viewer** (Người xem) thủ công cho các email người dùng trong thư mục lưu game.
+> **Google Cloud Console Setup:**
+> 1. Visit [Google Cloud Console Credentials](https://console.cloud.google.com/apis/credentials).
+> 2. Create an **OAuth 2.0 Client ID** with Application type **Web application**.
+> 3. Under **Authorized JavaScript origins**, add your origin (e.g. `http://localhost:8080` or `https://kame.yourdomain.com`).
+> 4. In Google Drive, manually grant **Viewer** permissions to the 2-3 whitelisted users on the folder containing the games.
 
 ---
 
-## 🚀 Triển Khai Docker (Single Container)
+## 🚀 Docker Deployment (Single Container)
 
-### 1. Build & Chạy qua Docker Compose
+### 1. Run with Docker Compose
 
 ```bash
-# Build image và khởi chạy ngầm
+# Build image and start in background
 docker compose up -d --build
 
-# Xem logs hoạt động
+# Inspect logs
 docker compose logs -f
 ```
 
-### 2. Chạy Trực Tiếp Qua Docker CLI
+### 2. Run Directly with Docker CLI
 
 ```bash
-# Build Docker image
+# Build single Docker image
 docker build -t kame:latest .
 
-# Run container với volume mount cho SQLite
+# Run container with SQLite volume mount
 docker run -d \
   --name kame_catalog \
   --restart unless-stopped \
@@ -115,28 +115,28 @@ docker run -d \
   kame:latest
 ```
 
-Hệ thống sẽ sẵn sàng tại: **`http://localhost:8080`**
+The application is now accessible at **`http://localhost:8080`**.
 
 ---
 
-## 🛠️ Phát Triển Cục Bộ (Local Development)
+## 🛠️ Local Development
 
-Nếu bạn muốn chạy thử và debug trên máy local (Arch Linux / macOS / Linux):
+For local development on Arch Linux / macOS / Linux:
 
 ```bash
-# 1. Chạy Backend (Terminal 1)
+# 1. Start Go Backend (Terminal 1)
 make dev-backend
 
-# 2. Chạy Frontend với Vite Hot-Reload (Terminal 2)
+# 2. Start Vite Frontend with Hot-Reload (Terminal 2)
 make dev-frontend
 ```
 
-Frontend Vite sẽ chạy tại `http://localhost:5173` và tự động proxy các request `/api/*` về Go backend ở port `8080`.
+The Vite dev server runs at `http://localhost:5173` and automatically proxies all `/api/*` requests to the Go backend on port `8080`.
 
-Để build một file thực thi duy nhất cục bộ:
+To build a standalone production binary locally:
 
 ```bash
 make build
-# Binary tạo ra tại ./bin/kame (~13MB)
+# Output executable: ./bin/kame (~13MB)
 ./bin/kame
 ```

@@ -180,7 +180,7 @@ const handleSubmit = async () => {
       <form @submit.prevent="handleSubmit" class="mt-6 space-y-4">
         <!-- Google Drive File ID -->
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+          <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-300 mb-1">
             <LinkIcon class="w-3.5 h-3.5 text-indigo-400" />
             Google Drive File ID or Shareable Link <span class="text-rose-400">*</span>
           </label>
@@ -189,7 +189,7 @@ const handleSubmit = async () => {
             type="text"
             required
             placeholder="1abcXYZ... or https://drive.google.com/file/d/1abcXYZ/view?usp=sharing"
-            class="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 font-mono text-xs"
+            class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 font-mono text-xs"
           />
         </div>
 
@@ -245,7 +245,7 @@ const handleSubmit = async () => {
 
         <!-- Cover Art URL -->
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+          <label class="flex items-center gap-1.5 text-xs font-semibold text-slate-300 mb-1">
             <ImageIcon class="w-3.5 h-3.5 text-indigo-400" />
             Cover Image URL
           </label>
@@ -253,7 +253,7 @@ const handleSubmit = async () => {
             v-model="coverUrl"
             type="url"
             placeholder="https://..."
-            class="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 font-mono text-xs"
+            class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 font-mono text-xs"
           />
         </div>
 
@@ -264,7 +264,7 @@ const handleSubmit = async () => {
             v-model="backgroundUrl"
             type="url"
             placeholder="https://..."
-            class="w-full px-3.5 py-2 text-sm rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 font-mono text-xs"
+            class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 font-mono text-xs"
           />
         </div>
 

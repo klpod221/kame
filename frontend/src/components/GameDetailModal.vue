@@ -78,7 +78,7 @@ const handleDelete = async () => {
           :alt="game.title"
           class="w-full h-full object-cover object-center filter brightness-75"
         />
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
+        <div class="absolute inset-0 bg-linear-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
 
         <!-- Close Button -->
         <button
@@ -94,7 +94,7 @@ const handleDelete = async () => {
         <div class="flex flex-col md:flex-row gap-6 items-start">
           
           <!-- Poster Mini -->
-          <div class="w-36 md:w-44 shrink-0 aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-700/60 bg-slate-950">
+          <div class="w-36 md:w-44 shrink-0 aspect-3/4 rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-700/60 bg-slate-950">
             <img
               v-if="game.cover_url"
               :src="game.cover_url"
@@ -182,7 +182,7 @@ const handleDelete = async () => {
             <!-- Download Button -->
             <button
               @click="handleDownload"
-              class="flex-1 sm:flex-initial flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-semibold shadow-xl shadow-indigo-500/25 transition-all transform hover:scale-[1.02] cursor-pointer"
+              class="flex-1 sm:flex-initial flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-linear-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-semibold shadow-xl shadow-indigo-500/25 transition-all transform hover:scale-[1.02] cursor-pointer"
             >
               <Download class="w-5 h-5" />
               <span>{{ isAuthenticated ? 'Download Game' : 'Sign in to Download' }}</span>

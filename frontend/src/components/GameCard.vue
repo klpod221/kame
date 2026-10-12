@@ -18,7 +18,7 @@ const emit = defineEmits<{
     class="group relative flex flex-col rounded-2xl bg-slate-900/60 border border-slate-800/80 overflow-hidden hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer transform hover:-translate-y-1.5"
   >
     <!-- Cover Poster (Aspect Ratio 3:4) -->
-    <div class="relative aspect-[3/4] w-full overflow-hidden bg-slate-950">
+    <div class="relative aspect-3/4 w-full overflow-hidden bg-slate-950">
       <img
         v-if="game.cover_url"
         :src="game.cover_url"
@@ -31,7 +31,7 @@ const emit = defineEmits<{
       </div>
 
       <!-- Gradient Overlay on Poster -->
-      <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
+      <div class="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
 
       <!-- Top Badges -->
       <div class="absolute top-2.5 inset-x-2.5 flex items-center justify-between">
