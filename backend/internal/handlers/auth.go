@@ -29,7 +29,7 @@ type googleAuthRequest struct {
 
 type googleTokenInfo struct {
 	Email         string `json:"email"`
-	EmailVerified string `json:"email_verified"`
+	EmailVerified any    `json:"email_verified"`
 	Name          string `json:"name"`
 	Picture       string `json:"picture"`
 	Sub           string `json:"sub"`

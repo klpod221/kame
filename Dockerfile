@@ -41,17 +41,18 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # ==========================================
 FROM alpine:3.21 AS runner
 
-RUN apk add --no-cache ca-certificates tzdata dumb-init sqlite
+RUN apk add --no-cache ca-certificates tzdata dumb-init sqlite su-exec
 
 # Create unprivileged user & data mount directory
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+RUN addgroup -S -g 1000 appgroup && adduser -S -u 1000 appuser -G appgroup && \
     mkdir -p /data && chown -R appuser:appgroup /data
 
 WORKDIR /app
 
-COPY --from=backend-builder --chown=appuser:appgroup /app/kame-server ./kame-server
+COPY --from=backend-builder /app/kame-server ./kame-server
 
-USER appuser
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENV PORT=8324
 ENV DB_PATH=/data/catalog.db
@@ -59,5 +60,5 @@ ENV DB_PATH=/data/catalog.db
 VOLUME ["/data"]
 EXPOSE 8324
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/entrypoint.sh"]
 CMD ["./kame-server"]
