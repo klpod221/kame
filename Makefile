@@ -17,9 +17,9 @@ build:
 dev-frontend:
 	cd frontend && pnpm dev
 
-# Start Backend development server (port 8080)
+# Start Backend development server (port 8324)
 dev-backend:
-	cd backend && PORT=8080 DB_PATH=data/catalog.db go run cmd/server/main.go
+	cd backend && PORT=8324 DB_PATH=data/catalog.db go run cmd/server/main.go
 
 # Docker Single Image build & container management
 docker-build:

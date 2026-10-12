@@ -53,11 +53,11 @@ COPY --from=backend-builder --chown=appuser:appgroup /app/kame-server ./kame-ser
 
 USER appuser
 
-ENV PORT=8080
+ENV PORT=8324
 ENV DB_PATH=/data/catalog.db
 
 VOLUME ["/data"]
-EXPOSE 8080
+EXPOSE 8324
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["./kame-server"]

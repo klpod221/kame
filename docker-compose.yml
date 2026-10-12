@@ -6,9 +6,9 @@ services:
     container_name: kame_catalog
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8324:8324"
     environment:
-      - PORT=8080
+      - PORT=8324
       - DB_PATH=/data/catalog.db
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - WHITELIST_EMAILS=${WHITELIST_EMAILS}

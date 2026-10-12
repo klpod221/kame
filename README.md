@@ -69,7 +69,7 @@ cp .env.example .env
 
 | Environment Variable | Description | Default / Example |
 | :--- | :--- | :--- |
-| `PORT` | HTTP port the application listens on | `8080` |
+| `PORT` | HTTP port the application listens on | `8324` |
 | `DB_PATH` | Path to the SQLite database file | `/data/catalog.db` (Docker) or `data/catalog.db` (Local) |
 | `GOOGLE_CLIENT_ID` | OAuth 2.0 Client ID from Google Cloud Console | `xxxx.apps.googleusercontent.com` |
 | `WHITELIST_EMAILS` | Comma-separated list of whitelisted Gmail addresses | `alice@gmail.com,bob@gmail.com` |
@@ -82,7 +82,7 @@ cp .env.example .env
 > **Google Cloud Console Setup:**
 > 1. Visit [Google Cloud Console Credentials](https://console.cloud.google.com/apis/credentials).
 > 2. Create an **OAuth 2.0 Client ID** with Application type **Web application**.
-> 3. Under **Authorized JavaScript origins**, add your origin (e.g. `http://localhost:8080` or `https://kame.yourdomain.com`).
+> 3. Under **Authorized JavaScript origins**, add your origin (e.g. `http://localhost:8324` or `https://kame.yourdomain.com`).
 > 4. In Google Drive, manually grant **Viewer** permissions to the 2-3 whitelisted users on the folder containing the games.
 
 ---
@@ -109,13 +109,13 @@ docker build -t kame:latest .
 docker run -d \
   --name kame_catalog \
   --restart unless-stopped \
-  -p 8080:8080 \
+  -p 8324:8324 \
   --env-file .env \
   -v $(pwd)/data:/data \
   kame:latest
 ```
 
-The application is now accessible at **`http://localhost:8080`**.
+The application is now accessible at **`http://localhost:8324`**.
 
 ---
 

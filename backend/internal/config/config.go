@@ -26,7 +26,7 @@ func Load() *Config {
 	// Try loading .env if it exists
 	_ = godotenv.Load()
 
-	port := getEnv("PORT", "8080")
+	port := getEnv("PORT", "8324")
 	dbPath := getEnv("DB_PATH", "data/catalog.db")
 	googleClientID := getEnv("GOOGLE_CLIENT_ID", "")
 	rawgKey := getEnv("RAWG_API_KEY", "")
