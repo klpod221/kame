@@ -51,14 +51,13 @@ const goToAdmin = () => {
 
   <!-- Sidebar Container -->
   <aside 
-    class="fixed top-0 bottom-0 left-0 z-50 w-64 bg-[#070a0f]/95 border-r border-white/5 backdrop-blur-xl flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0"
+    class="fixed top-0 bottom-0 left-0 z-50 w-64 h-screen max-h-screen bg-[#070a0f]/95 border-r border-white/5 backdrop-blur-xl flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 overflow-hidden"
     :class="isOpen ? 'translate-x-0' : '-translate-x-full'"
   >
-    <!-- Top Branding & Navigation -->
-    <div class="flex flex-col flex-1 overflow-y-auto px-4 py-5 scrollbar-none">
-      
+    <!-- 1. Top Branding & Navigation (Fixed Header, No Scroll) -->
+    <div class="shrink-0 px-4 pt-5 pb-3">
       <!-- Brand Logo Header with transparent logo -->
-      <div class="flex items-center justify-between pb-6 px-1 border-b border-white/5">
+      <div class="flex items-center justify-between pb-4 px-1 border-b border-white/5">
         <router-link to="/" class="flex items-center gap-3 group">
           <img 
             src="/kame-48.png" 
@@ -85,8 +84,7 @@ const goToAdmin = () => {
       </div>
 
       <!-- Main Navigation Menu -->
-      <nav class="space-y-1.5 pt-5">
-        
+      <nav class="space-y-1.5 pt-4">
         <!-- All Games (Library) -->
         <button
           @click="selectGenre('')"
@@ -106,44 +104,46 @@ const goToAdmin = () => {
             {{ gameStore.total }}
           </span>
         </button>
-
       </nav>
-
-      <!-- GENRES SECTION (Collapsible) -->
-      <div class="mt-6 pt-5 border-t border-white/5">
-        <button
-          @click="isGenresExpanded = !isGenresExpanded"
-          class="w-full flex items-center justify-between px-3 mb-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200 transition-colors cursor-pointer select-none"
-        >
-          <div class="flex items-center gap-2">
-            <Layers class="w-3.5 h-3.5 text-indigo-400" />
-            <span>Genres</span>
-          </div>
-          <component 
-            :is="isGenresExpanded ? ChevronDown : ChevronRight" 
-            class="w-3.5 h-3.5 text-slate-500" 
-          />
-        </button>
-
-        <div v-show="isGenresExpanded" class="space-y-1">
-          <button
-            v-for="genre in gameStore.genres"
-            :key="genre"
-            @click="selectGenre(genre)"
-            class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer text-left"
-            :class="gameStore.selectedGenre === genre 
-              ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20' 
-              : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'"
-          >
-            <span class="truncate">{{ genre }}</span>
-          </button>
-        </div>
-      </div>
-
     </div>
 
-    <!-- Bottom User Section & Admin Entry -->
-    <div class="p-4 border-t border-white/5 bg-[#05070b]/90">
+    <!-- 2. GENRES SECTION (CHỈ CÓ PHẦN NÀY ĐƯỢC SCROLL) -->
+    <div class="flex-1 min-h-0 flex flex-col px-4 pt-3 pb-2 border-t border-white/5 overflow-hidden">
+      <button
+        @click="isGenresExpanded = !isGenresExpanded"
+        class="shrink-0 w-full flex items-center justify-between px-2 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200 transition-colors cursor-pointer select-none"
+      >
+        <div class="flex items-center gap-2">
+          <Layers class="w-3.5 h-3.5 text-indigo-400" />
+          <span>Genres</span>
+        </div>
+        <component 
+          :is="isGenresExpanded ? ChevronDown : ChevronRight" 
+          class="w-3.5 h-3.5 text-slate-500" 
+        />
+      </button>
+
+      <!-- Scrollable Genres List -->
+      <div 
+        v-show="isGenresExpanded" 
+        class="flex-1 min-h-0 overflow-y-auto space-y-1 pr-1 overscroll-contain"
+      >
+        <button
+          v-for="genre in gameStore.genres"
+          :key="genre"
+          @click="selectGenre(genre)"
+          class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer text-left"
+          :class="gameStore.selectedGenre === genre 
+            ? 'bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-600/20' 
+            : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'"
+        >
+          <span class="truncate">{{ genre }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Bottom User Section & Admin Entry (Fixed at bottom) -->
+    <div class="shrink-0 p-4 border-t border-white/5 bg-[#05070b]/95">
       
       <!-- Admin Console Button (Separated from client browsing) -->
       <button

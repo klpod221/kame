@@ -52,6 +52,7 @@ func main() {
 	scraperHandler := handlers.NewScraperHandler(scraperProvider)
 	configHandler := handlers.NewConfigHandler(cfg)
 	adminHandler := handlers.NewAdminHandler(db, cfg)
+	rescrapeManager := handlers.NewRescrapeManager(db, scraperProvider)
 
 	r := chi.NewRouter()
 
@@ -115,6 +116,11 @@ func main() {
 			admin.Post("/games", gamesHandler.Create)
 			admin.Put("/games/{id}", gamesHandler.Update)
 			admin.Delete("/games/{id}", gamesHandler.Delete)
+			admin.Put("/games/{id}/lock", rescrapeManager.ToggleLock)
+			admin.Post("/games/{id}/rescrape", rescrapeManager.RescrapeSingle)
+			admin.Post("/games/rescrape-all", rescrapeManager.TriggerAll)
+			admin.Get("/games/rescrape-all/status", rescrapeManager.GetStatus)
+			admin.Post("/games/rescrape-all/cancel", rescrapeManager.Cancel)
 			admin.Get("/stats", adminHandler.GetStats)
 			admin.Get("/users", adminHandler.ListUsers)
 			admin.Put("/users/{email}/role", adminHandler.UpdateUserRole)

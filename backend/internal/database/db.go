@@ -88,6 +88,10 @@ func (db *DB) migrate() error {
 			return err
 		}
 	}
+
+	// Idempotent column addition for is_locked
+	_, _ = db.conn.Exec("ALTER TABLE games ADD COLUMN is_locked INTEGER DEFAULT 0;")
+
 	return nil
 }
 
@@ -126,7 +130,7 @@ func (db *DB) ListGames(search, genre string, page, limit int) ([]Game, int, err
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, title, description, genres, cover_url, background_url, drive_file_id, file_size, release_year, rating, created_at, updated_at
+		SELECT id, title, description, genres, cover_url, background_url, drive_file_id, file_size, release_year, rating, is_locked, created_at, updated_at
 		FROM games
 		%s
 		ORDER BY created_at DESC
@@ -144,6 +148,7 @@ func (db *DB) ListGames(search, genre string, page, limit int) ([]Game, int, err
 	for rows.Next() {
 		var g Game
 		var genresRaw string
+		var isLockedInt int
 		var createdAtStr, updatedAtStr string
 		err := rows.Scan(
 			&g.ID,
@@ -156,12 +161,14 @@ func (db *DB) ListGames(search, genre string, page, limit int) ([]Game, int, err
 			&g.FileSize,
 			&g.ReleaseYear,
 			&g.Rating,
+			&isLockedInt,
 			&createdAtStr,
 			&updatedAtStr,
 		)
 		if err != nil {
 			return nil, 0, err
 		}
+		g.IsLocked = isLockedInt != 0
 		if genresRaw != "" {
 			_ = json.Unmarshal([]byte(genresRaw), &g.Genres)
 		}
@@ -181,13 +188,14 @@ func (db *DB) ListGames(search, genre string, page, limit int) ([]Game, int, err
 
 func (db *DB) GetGameByID(id string) (*Game, error) {
 	row := db.conn.QueryRow(`
-		SELECT id, title, description, genres, cover_url, background_url, drive_file_id, file_size, release_year, rating, created_at, updated_at
+		SELECT id, title, description, genres, cover_url, background_url, drive_file_id, file_size, release_year, rating, is_locked, created_at, updated_at
 		FROM games
 		WHERE id = ?
 	`, id)
 
 	var g Game
 	var genresRaw string
+	var isLockedInt int
 	var createdAtStr, updatedAtStr string
 	err := row.Scan(
 		&g.ID,
@@ -200,6 +208,7 @@ func (db *DB) GetGameByID(id string) (*Game, error) {
 		&g.FileSize,
 		&g.ReleaseYear,
 		&g.Rating,
+		&isLockedInt,
 		&createdAtStr,
 		&updatedAtStr,
 	)
@@ -209,6 +218,7 @@ func (db *DB) GetGameByID(id string) (*Game, error) {
 	if err != nil {
 		return nil, err
 	}
+	g.IsLocked = isLockedInt != 0
 	if genresRaw != "" {
 		_ = json.Unmarshal([]byte(genresRaw), &g.Genres)
 	}
@@ -227,10 +237,14 @@ func (db *DB) CreateGame(g *Game) error {
 		g.CreatedAt = now
 	}
 	g.UpdatedAt = now
+	lockedInt := 0
+	if g.IsLocked {
+		lockedInt = 1
+	}
 
 	_, err := db.conn.Exec(`
-		INSERT INTO games (id, title, description, genres, cover_url, background_url, drive_file_id, file_size, release_year, rating, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO games (id, title, description, genres, cover_url, background_url, drive_file_id, file_size, release_year, rating, is_locked, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		g.ID,
 		g.Title,
@@ -242,9 +256,59 @@ func (db *DB) CreateGame(g *Game) error {
 		g.FileSize,
 		g.ReleaseYear,
 		g.Rating,
+		lockedInt,
 		g.CreatedAt.Format(time.RFC3339),
 		g.UpdatedAt.Format(time.RFC3339),
 	)
+	return err
+}
+
+type GameBasic struct {
+	ID       string `json:"id"`
+	Title    string `json:"title"`
+	IsLocked bool   `json:"is_locked"`
+}
+
+func (db *DB) GetAllGameBasicInfos() ([]GameBasic, error) {
+	rows, err := db.conn.Query("SELECT id, title, is_locked FROM games ORDER BY title ASC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []GameBasic
+	for rows.Next() {
+		var g GameBasic
+		var isLockedInt int
+		if err := rows.Scan(&g.ID, &g.Title, &isLockedInt); err != nil {
+			return nil, err
+		}
+		g.IsLocked = isLockedInt != 0
+		list = append(list, g)
+	}
+	return list, rows.Err()
+}
+
+func (db *DB) ToggleGameLock(id string, isLocked bool) error {
+	lockedInt := 0
+	if isLocked {
+		lockedInt = 1
+	}
+	now := time.Now().Format(time.RFC3339)
+	_, err := db.conn.Exec("UPDATE games SET is_locked = ?, updated_at = ? WHERE id = ?", lockedInt, now, id)
+	return err
+}
+
+func (db *DB) UpdateGameMetadata(id, title, description string, genres []string, coverURL, backgroundURL string, releaseYear int, rating float64) error {
+	genresJSON, _ := json.Marshal(genres)
+	now := time.Now().Format(time.RFC3339)
+
+	query := `
+		UPDATE games 
+		SET title = ?, description = ?, genres = ?, cover_url = ?, background_url = ?, release_year = ?, rating = ?, updated_at = ?
+		WHERE id = ?
+	`
+	_, err := db.conn.Exec(query, title, description, string(genresJSON), coverURL, backgroundURL, releaseYear, rating, now, id)
 	return err
 }
 

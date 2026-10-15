@@ -9,6 +9,7 @@ export interface Game {
   file_size: number
   release_year: number
   rating: number
+  is_locked?: boolean
   created_at: string
   updated_at: string
 }

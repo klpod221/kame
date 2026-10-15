@@ -1,23 +1,42 @@
 <script setup lang="ts">
-import { Shield, ShieldCheck, Trash2 } from 'lucide-vue-next'
+import { ref } from 'vue'
+import { Shield, ShieldCheck, Trash2, AlertTriangle, UserCheck } from 'lucide-vue-next'
 import { useAdminStore } from '../../../stores/admin.store'
 import { useAuthStore } from '../../../stores/auth.store'
 import { formatDate } from '../../../utils/format'
 import Badge from '../../../components/ui/Badge.vue'
+import Modal from '../../../components/ui/Modal.vue'
+import Button from '../../../components/ui/Button.vue'
 import type { User } from '../../../types'
 
 const adminStore = useAdminStore()
 const authStore = useAuthStore()
 
-const handleToggleRole = async (user: User) => {
+// Modal states
+const rolePending = ref<{ user: User; newRole: string } | null>(null)
+const deletePending = ref<User | null>(null)
+
+const openRoleModal = (user: User) => {
   const newRole = user.role === 'admin' ? 'member' : 'admin'
-  if (confirm(`Change role of ${user.email} to ${newRole.toUpperCase()}?`)) {
+  rolePending.value = { user, newRole }
+}
+
+const confirmRoleChange = async () => {
+  if (rolePending.value) {
+    const { user, newRole } = rolePending.value
+    rolePending.value = null
     await adminStore.updateUserRole(user.email, newRole)
   }
 }
 
-const handleDeleteUser = async (user: User) => {
-  if (confirm(`Remove user ${user.email} from Kame?`)) {
+const openDeleteModal = (user: User) => {
+  deletePending.value = user
+}
+
+const confirmDeleteUser = async () => {
+  if (deletePending.value) {
+    const user = deletePending.value
+    deletePending.value = null
     await adminStore.deleteUser(user.email)
   }
 }
@@ -97,15 +116,15 @@ const handleDeleteUser = async (user: User) => {
                 <div class="flex items-center justify-end gap-2">
                   <button
                     v-if="user.email !== authStore.currentUser?.email"
-                    @click="handleToggleRole(user)"
+                    @click="openRoleModal(user)"
                     class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-semibold border border-white/10 transition-colors cursor-pointer"
                   >
-                    {{ user.role === 'admin' ? 'Make Member' : 'Make Admin' }}
+                    {{ user.role === 'admin' ? 'Demote to Member' : 'Promote to Admin' }}
                   </button>
 
                   <button
                     v-if="user.email !== authStore.currentUser?.email"
-                    @click="handleDeleteUser(user)"
+                    @click="openDeleteModal(user)"
                     class="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-white/5 transition-colors cursor-pointer"
                     title="Remove user"
                   >
@@ -118,6 +137,106 @@ const handleDeleteUser = async (user: User) => {
         </table>
       </div>
     </div>
+
+    <!-- 1. CHANGE ROLE CONFIRMATION MODAL -->
+    <Modal
+      v-if="rolePending"
+      title="Change User Access Level"
+      maxWidth="md"
+      @close="rolePending = null"
+    >
+      <div class="space-y-4 text-xs">
+        <div class="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-start gap-3">
+          <UserCheck class="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+          <div class="space-y-1">
+            <p class="font-bold text-white text-sm">Role Update</p>
+            <p class="text-slate-300 leading-relaxed">
+              Are you sure you want to change the role of <span class="font-bold text-white">{{ rolePending?.user.name || rolePending?.user.email }}</span> to <span class="font-bold text-indigo-300 uppercase">{{ rolePending?.newRole }}</span>?
+            </p>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-white/3 border border-white/5 space-y-1">
+          <div class="flex justify-between text-slate-400">
+            <span>User:</span>
+            <span class="font-mono text-slate-200">{{ rolePending?.user.email }}</span>
+          </div>
+          <div class="flex justify-between text-slate-400">
+            <span>New Access Level:</span>
+            <span class="font-bold text-indigo-400 uppercase">{{ rolePending?.newRole }}</span>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-2.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            @click="rolePending = null"
+            class="text-slate-400 hover:text-white"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            @click="confirmRoleChange"
+            class="font-semibold shadow-lg shadow-indigo-600/30"
+          >
+            Confirm Change
+          </Button>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- 2. DELETE USER CONFIRMATION MODAL -->
+    <Modal
+      v-if="deletePending"
+      title="Remove User Account"
+      maxWidth="md"
+      @close="deletePending = null"
+    >
+      <div class="space-y-4 text-xs">
+        <div class="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
+          <AlertTriangle class="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+          <div class="space-y-1">
+            <p class="font-bold text-white text-sm">Permanent Revocation</p>
+            <p class="text-slate-300 leading-relaxed">
+              Are you sure you want to remove <span class="font-bold text-white">{{ deletePending?.name || deletePending?.email }}</span>? This will revoke all their catalog privileges immediately.
+            </p>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-white/3 border border-white/5 space-y-1">
+          <div class="flex justify-between text-slate-400">
+            <span>Email Address:</span>
+            <span class="font-mono text-rose-300">{{ deletePending?.email }}</span>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end gap-2.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            @click="deletePending = null"
+            class="text-slate-400 hover:text-white"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            @click="confirmDeleteUser"
+            class="font-semibold bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-600/30"
+          >
+            Remove Account
+          </Button>
+        </div>
+      </template>
+    </Modal>
 
   </div>
 </template>

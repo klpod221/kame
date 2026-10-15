@@ -50,8 +50,8 @@ const adminStore = useAdminStore()
         <div class="space-y-2 text-xs">
           <div class="flex justify-between py-1.5 border-b border-white/5">
             <span class="text-slate-400">RAWG Video Games API</span>
-            <span :class="adminStore.stats?.has_rawg ? 'text-emerald-400 font-bold' : 'text-slate-500'">
-              {{ adminStore.stats?.has_rawg ? 'Connected' : 'Not configured' }}
+            <span :class="(adminStore.stats?.has_rawg || (adminStore.stats as any)?.has_rawg_key) ? 'text-emerald-400 font-bold' : 'text-slate-500'">
+              {{ (adminStore.stats?.has_rawg || (adminStore.stats as any)?.has_rawg_key) ? 'Connected' : 'Not configured' }}
             </span>
           </div>
           <div class="flex justify-between py-1.5 border-b border-white/5">

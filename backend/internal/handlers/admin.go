@@ -30,8 +30,10 @@ func (h *AdminHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	stats["whitelist_enabled"] = len(h.cfg.WhitelistEmails) > 0
+	stats["has_rawg"] = h.cfg.RAWGAPIKey != ""
 	stats["has_rawg_key"] = h.cfg.RAWGAPIKey != ""
 	stats["has_igdb"] = h.cfg.TwitchClientID != "" && h.cfg.TwitchClientSecret != ""
+	stats["has_igdb_key"] = stats["has_igdb"]
 
 	respondJSON(w, http.StatusOK, stats)
 }

@@ -46,4 +46,37 @@ export const adminService = {
     const res = await api.post<{ candidates: GameCandidate[] }>('/api/admin/scrape', { query })
     return res.candidates || []
   },
+
+  async triggerRescrapeAll(): Promise<{ message: string; total: number }> {
+    return api.post<{ message: string; total: number }>('/api/admin/games/rescrape-all')
+  },
+
+  async getRescrapeStatus(): Promise<RescrapeStatus> {
+    return api.get<RescrapeStatus>('/api/admin/games/rescrape-all/status')
+  },
+
+  async cancelRescrape(): Promise<{ message: string }> {
+    return api.post<{ message: string }>('/api/admin/games/rescrape-all/cancel')
+  },
+
+  async toggleGameLock(id: string, isLocked: boolean): Promise<{ id: string; is_locked: boolean }> {
+    return api.put<{ id: string; is_locked: boolean }>(`/api/admin/games/${id}/lock`, { is_locked: isLocked })
+  },
+
+  async rescrapeSingleGame(id: string): Promise<Game> {
+    return api.post<Game>(`/api/admin/games/${id}/rescrape`)
+  },
 }
+
+export interface RescrapeStatus {
+  status: 'idle' | 'running' | 'completed' | 'cancelled' | 'failed'
+  total: number
+  processed: number
+  success: number
+  failed: number
+  current_game?: string
+  started_at?: string
+  finished_at?: string
+  last_error?: string
+}
+

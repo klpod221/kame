@@ -15,6 +15,7 @@ type Game struct {
 	FileSize      int64     `json:"file_size"`
 	ReleaseYear   int       `json:"release_year"`
 	Rating        float64   `json:"rating"`
+	IsLocked      bool      `json:"is_locked"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }

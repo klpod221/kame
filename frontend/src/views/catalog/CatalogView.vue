@@ -49,13 +49,10 @@ const handleGameSelect = (game: Game) => {
   router.push(`/games/${game.id}`)
 }
 
-const handleGenreFilter = (genre: string) => {
-  gameStore.selectedGenre = gameStore.selectedGenre === genre ? '' : genre
-}
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#070a0f] text-slate-100 flex animate-fadeIn">
+  <div class="h-screen bg-[#070a0f] text-slate-100 flex overflow-hidden animate-fadeIn">
     
     <!-- Left Navigation Sidebar -->
     <Sidebar
@@ -64,49 +61,23 @@ const handleGenreFilter = (genre: string) => {
     />
 
     <!-- Main Content Layout (Offset for Sidebar on desktop) -->
-    <div class="flex-1 flex flex-col min-w-0 lg:pl-64">
+    <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden lg:pl-64">
       
       <!-- Top Header Bar with Debounced Search -->
       <HeaderBar
+        class="shrink-0"
         @toggleSidebar="isMobileSidebarOpen = !isMobileSidebarOpen"
       />
 
-      <!-- Catalog Main Area -->
-      <main class="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-7xl w-full mx-auto">
-        
-        <!-- Horizontal Genre Pills Bar (Quick Filter Ribbon) -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none select-none">
-          <button
-            @click="handleGenreFilter('')"
-            class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border"
-            :class="!gameStore.selectedGenre 
-              ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/30' 
-              : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10'"
-          >
-            All Vault Items
-          </button>
-
-          <button
-            v-for="genre in gameStore.genres"
-            :key="genre"
-            @click="handleGenreFilter(genre)"
-            class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border flex items-center gap-1.5"
-            :class="gameStore.selectedGenre === genre 
-              ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/30' 
-              : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10'"
-          >
-            <span>{{ genre }}</span>
-          </button>
-        </div>
-
-        <!-- Section Header with Count and Sort Selector -->
-        <div class="flex items-center justify-between pt-1 pb-2 border-b border-white/5">
+      <!-- Fixed Section Header (Title, Count & Sort Selector) -->
+      <div class="shrink-0 px-4 sm:px-6 lg:px-8 py-3.5 border-b border-white/5 bg-[#070a0f]/95 backdrop-blur-md z-20">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <h2 class="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+            <h2 class="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-2">
               <Sparkles v-if="!gameStore.selectedGenre" class="w-4 h-4 text-indigo-400" />
               <span>{{ gameStore.selectedGenre ? gameStore.selectedGenre : 'Game Vault' }}</span>
             </h2>
-            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-400">
+            <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-400">
               {{ gameStore.total }} items
             </span>
           </div>
@@ -126,6 +97,11 @@ const handleGenreFilter = (genre: string) => {
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Catalog Main Area: ONLY the game list scrolls! -->
+      <main class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8 overscroll-contain">
+        <div class="max-w-7xl w-full mx-auto pb-12">
 
         <!-- Loading State -->
         <div v-if="gameStore.isLoading" class="flex-1 flex flex-col items-center justify-center py-28 gap-3 text-slate-500">
@@ -147,10 +123,10 @@ const handleGenreFilter = (genre: string) => {
           </p>
         </div>
 
-        <!-- Jellyfin Cinema Poster Grid (Larger Cards) -->
+        <!-- Steam Library Grid -->
         <div 
           v-else 
-          class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5 sm:gap-6 lg:gap-7"
+          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4.5 lg:gap-5"
         >
           <GameCard
             v-for="game in gameStore.sortedGames"
@@ -160,6 +136,7 @@ const handleGenreFilter = (genre: string) => {
           />
         </div>
 
+        </div>
       </main>
 
     </div>
